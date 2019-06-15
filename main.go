@@ -38,6 +38,13 @@ type Ranking struct{
 	UserID uint
 }
 
+type Choice struct{
+	gorm.Model
+	Title string `gorm:"size:255"`
+	Vote uint
+	RankingID uint
+}
+
 func getUserByEmail(email string) (User, error) {
 	db := gormConnect()
 	var u User
@@ -58,12 +65,15 @@ func getRankingByID(id int) (Ranking, error) {
     return rank, nil
 }
 
+
+
 func main() {
 
 	db := gormConnect()
 	db.Set("gorm:table_options", "ENGINE=InnoDB")
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(Ranking{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(Choice{}).AddForeignKey("ranking_id", "rankings(id)", "CASCADE", "CASCADE")
 	defer db.Close()
 	db.LogMode(true)
 
