@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-    _ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"encoding/json"
 )
 
 func gormConnect() *gorm.DB{
@@ -30,12 +31,28 @@ type User struct {
     Email string `gorm:"size:255"`
 }
 
+type Ranking struct{
+	gorm.Model
+	Title string `gorm:"size:255"`
+	UserID uint
+}
+
+func getUserByEmail(email string) (User, error) {
+	db := gormConnect()
+	var u User
+	if err := db.Where("email = ?", email).First(&u).Error; err != nil {
+        return u, err
+    }
+
+    return u, nil
+}
+
 func main() {
 
-	fmt.Println("gin started")
 	db := gormConnect()
 	db.Set("gorm:table_options", "ENGINE=InnoDB")
 	db.AutoMigrate(&User{})
+	db.AutoMigrate(Ranking{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	defer db.Close()
 	db.LogMode(true)
 
@@ -45,18 +62,16 @@ func main() {
 	})
 
 	r.GET("api/user", func(c *gin.Context){
-		var user []User
-		if err := db.Find(&user).Error; err != nil {
+		var users []User
+		if err := db.Find(&users).Error; err != nil {
 			c.AbortWithStatus(404)
 			fmt.Println(err)
 		}
-		fmt.Println(user)
-		c.JSON(200, user)
+		c.JSON(200, users)
 	})
 			
 	r.POST("/api/user", func(c *gin.Context){
 		c.Request.ParseForm()
-		fmt.Println(c.PostForm("username"))
 		user := User{
 			Name: c.PostForm("username"), 
 			Password: c.PostForm("password"), 
@@ -64,6 +79,33 @@ func main() {
 		}
 		db.Create(&user)
 	})
+
+	r.GET("api/ranking", func(c *gin.Context){
+		var rankings []Ranking
+		if err := db.Find(&rankings).Error; err != nil {
+			c.AbortWithStatus(404)
+			fmt.Println(err)
+		}
+		c.JSON(200, rankings)
+	})
+
+	r.POST("api/ranking", func(c *gin.Context){
+
+		c.Request.ParseForm()
+		email := c.PostForm("email")
+		user, err := getUserByEmail(email)
+		if err != nil {
+			c.AbortWithStatus(400)
+		}
+		ranking := Ranking{
+			Title: c.PostForm("title"),
+			UserID: user.ID,
+		}
+
+		db.Create(&ranking)
+	})
+
+	
 
 	r.Run()
 
