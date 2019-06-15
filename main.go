@@ -23,6 +23,13 @@ func gormConnect() *gorm.DB{
     return db	
 }
 
+type User struct {
+    gorm.Model
+    Name string `gorm:"size:255"`
+    Password string `gorm:"size:255"`
+    Email string `gorm:"size:255"`
+}
+
 func main() {
 		if false {
 			r := gin.Default()
@@ -38,7 +45,8 @@ func main() {
 		}
 		fmt.Println("hoge")
 		db := gormConnect()
-
+		db.Set("gorm:table_options", "ENGINE=InnoDB")
+		db.AutoMigrate(&User{})
  		defer db.Close()
  		db.LogMode(true)
 }
