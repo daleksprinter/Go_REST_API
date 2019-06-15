@@ -31,22 +31,31 @@ type User struct {
 }
 
 func main() {
-		if false {
-			r := gin.Default()
-			r.GET("/", func(c *gin.Context) {
-					c.String(200, "Hello,World!")
-			})
-			
-			r.GET("/hoge", func(c *gin.Context){
-				c.String(200, "hello hogehoge")
-			})
 
-			r.Run()
+	fmt.Println("gin started")
+	db := gormConnect()
+	db.Set("gorm:table_options", "ENGINE=InnoDB")
+	db.AutoMigrate(&User{})
+	defer db.Close()
+	db.LogMode(true)
+
+	r := gin.Default()
+	r.GET("/", func(c *gin.Context) {
+			c.String(200, "Hello,Gin!")
+	})
+			
+	r.POST("/api/user", func(c *gin.Context){
+		c.Request.ParseForm()
+		fmt.Println(c.PostForm("username"))
+		user := User{
+			Name: c.PostForm("username"), 
+			Password: c.PostForm("password"), 
+			Email: c.PostForm("email"),
 		}
-		fmt.Println("hoge")
-		db := gormConnect()
-		db.Set("gorm:table_options", "ENGINE=InnoDB")
-		db.AutoMigrate(&User{})
- 		defer db.Close()
- 		db.LogMode(true)
+		db.Create(&user)
+	})
+
+	r.Run()
+
+
 }
