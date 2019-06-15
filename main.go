@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"encoding/json"
+	"strconv"
 )
 
 func gormConnect() *gorm.DB{
@@ -45,6 +46,16 @@ func getUserByEmail(email string) (User, error) {
     }
 
     return u, nil
+}
+
+func getRankingByID(id int) (Ranking, error) {
+	db := gormConnect()
+	var rank Ranking
+	if err := db.Where("ID = ?", id).First(&rank).Error; err != nil {
+        return rank, err
+    }
+
+    return rank, nil
 }
 
 func main() {
@@ -89,13 +100,23 @@ func main() {
 		c.JSON(200, rankings)
 	})
 
+	r.GET("api/ranking/:id", func(c *gin.Context){
+		id, _ := strconv.Atoi(c.Params.ByName("id"))
+		rank, err := getRankingByID(id)
+		if err != nil {
+			c.AbortWithStatus(404)
+		}
+		c.JSON(200, rank)
+
+	})
+
 	r.POST("api/ranking", func(c *gin.Context){
 
 		c.Request.ParseForm()
 		email := c.PostForm("email")
 		user, err := getUserByEmail(email)
 		if err != nil {
-			c.AbortWithStatus(400)
+			c.AbortWithStatus(404)
 		}
 		ranking := Ranking{
 			Title: c.PostForm("title"),
@@ -103,6 +124,9 @@ func main() {
 		}
 
 		db.Create(&ranking)
+
+		jsonBytes, err := json.Marshal(ranking)
+		c.JSON(200, string(jsonBytes))
 	})
 
 	
