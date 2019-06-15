@@ -13,7 +13,7 @@ func gormConnect() *gorm.DB{
 	PASSWORD := "password"
 	PROTOCOL := "tcp(0.0.0.0:3306)"
 	DBNAME := "gin"
-	CONNECT := USER + ":" + PASSWORD + "@" + PROTOCOL + "/" + DBNAME
+	CONNECT := USER + ":" + PASSWORD + "@" + PROTOCOL + "/" + DBNAME + "?parseTime=true"
 	db, err := gorm.Open(DBMS, CONNECT)
 
 	if err != nil {
@@ -42,6 +42,16 @@ func main() {
 	r := gin.Default()
 	r.GET("/", func(c *gin.Context) {
 			c.String(200, "Hello,Gin!")
+	})
+
+	r.GET("api/user", func(c *gin.Context){
+		var user []User
+		if err := db.Find(&user).Error; err != nil {
+			c.AbortWithStatus(404)
+			fmt.Println(err)
+		}
+		fmt.Println(user)
+		c.JSON(200, user)
 	})
 			
 	r.POST("/api/user", func(c *gin.Context){
