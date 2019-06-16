@@ -42,7 +42,7 @@ type Choice struct{
 	gorm.Model
 	Title string `gorm:"size:255"`
 	Vote uint
-	RankingID uint
+	RankingID int
 }
 
 func getUserByEmail(email string) (User, error) {
@@ -63,6 +63,16 @@ func getRankingByID(id int) (Ranking, error) {
     }
 
     return rank, nil
+}
+
+func getChoicesByRankingID(id int) ([]Choice, error) {
+	db := gormConnect()
+	var choices []Choice
+
+	if err := db.Find(&choices).Error; err != nil {
+		return choices, err
+	}
+	return choices, nil
 }
 
 
@@ -118,6 +128,26 @@ func main() {
 		}
 		c.JSON(200, rank)
 
+	})
+
+	r.GET("api/ranking/:id/choice", func(c *gin.Context){
+		id, _ := strconv.Atoi(c.Params.ByName("id"))
+		choices, err := getChoicesByRankingID(id)
+		if err != nil{
+			c.AbortWithStatus(404)
+		}
+		c.JSON(200, choices)
+	})
+
+	r.POST("api/ranking/:id/choice", func(c *gin.Context){
+		id, _ := strconv.Atoi(c.Params.ByName("id"))
+		choice := Choice{
+			Title: c.PostForm("title"),
+			Vote: 0,
+			RankingID: id,
+		}
+		db.Create(&choice)
+		
 	})
 
 	r.POST("api/ranking", func(c *gin.Context){
